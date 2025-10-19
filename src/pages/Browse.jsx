@@ -1,18 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, ArrowLeft, SlidersHorizontal, Calendar, MapPin, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { mockItems, campusLocations } from '../utils/data';
+import { itemsAPI, locationsAPI } from '../utils/api';
 import { formatDistanceToNow } from 'date-fns';
 
 const Browse = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedTab, setSelectedTab] = useState('all');
+  const [selectedTab, setSelectedTab] = useState('lost');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
+  
+  const [items, setItems] = useState([]);
+  const [campusLocations, setCampusLocations] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const categories = [
     { id: 'all', name: 'All Items' },
@@ -21,16 +26,65 @@ const Browse = () => {
     { id: 'books', name: 'Books' },
   ];
 
-  // Filter items
-  const filteredItems = mockItems.filter((item) => {
+  // Fetch items based on selected tab
+  useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        let data;
+        if (selectedTab === 'lost') {
+          data = await itemsAPI.getLostItems();
+        } else {
+          data = await itemsAPI.getFoundItems();
+        }
+        setItems(data.data || []);
+      } catch (err) {
+        console.error('Error fetching items:', err);
+        setError('Failed to load items. Please try again.');
+        setItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchItems();
+  }, [selectedTab]);
+
+  // Fetch campus locations
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const data = await locationsAPI.getCampusLocations();
+        setCampusLocations(data.data || []);
+      } catch (err) {
+        console.error('Error fetching locations:', err);
+        setCampusLocations([]);
+      }
+    };
+
+    fetchLocations();
+  }, []);
+
+  // Filter items based on all criteria
+  const filteredItems = items.filter((item) => {
     const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          item.location.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || 
                            item.category.toLowerCase() === selectedCategory.toLowerCase();
-    const matchesTab = selectedTab === 'all' || item.status === selectedTab;
     const matchesLocation = !selectedLocation || item.location === selectedLocation;
-    return matchesSearch && matchesCategory && matchesTab && matchesLocation;
+    return matchesSearch && matchesCategory && matchesLocation;
   });
+
+  const handleClearDate = (e) => {
+    e.stopPropagation();
+    setSelectedDate('');
+  };
+
+  const handleClearLocation = (e) => {
+    e.stopPropagation();
+    setSelectedLocation('');
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -89,7 +143,7 @@ const Browse = () => {
           >
             <Calendar className="w-4 h-4" />
             Date
-            {selectedDate && <X className="w-3 h-3" onClick={(e) => { e.stopPropagation(); setSelectedDate(''); }} />}
+            {selectedDate && <X className="w-3 h-3 cursor-pointer" onClick={handleClearDate} />}
           </button>
           <button 
             onClick={() => {
@@ -103,7 +157,7 @@ const Browse = () => {
           >
             <MapPin className="w-4 h-4" />
             Location
-            {selectedLocation && <X className="w-3 h-3" onClick={(e) => { e.stopPropagation(); setSelectedLocation(''); }} />}
+            {selectedLocation && <X className="w-3 h-3 cursor-pointer" onClick={handleClearLocation} />}
           </button>
           <button 
             onClick={() => {
@@ -154,19 +208,23 @@ const Browse = () => {
           <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 max-h-64 overflow-y-auto">
             <h3 className="font-semibold mb-3 text-gray-800">Select Location</h3>
             <div className="space-y-2">
-              {campusLocations.map((location) => (
-                <button
-                  key={location}
-                  onClick={() => { setSelectedLocation(location); setShowLocationPicker(false); }}
-                  className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
-                    selectedLocation === location 
-                      ? 'bg-primary text-white' 
-                      : 'hover:bg-gray-200'
-                  }`}
-                >
-                  {location}
-                </button>
-              ))}
+              {campusLocations.length > 0 ? (
+                campusLocations.map((location) => (
+                  <button
+                    key={location.id || location}
+                    onClick={() => { setSelectedLocation(location); setShowLocationPicker(false); }}
+                    className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
+                      selectedLocation === location 
+                        ? 'bg-primary text-white' 
+                        : 'hover:bg-gray-200'
+                    }`}
+                  >
+                    {typeof location === 'string' ? location : location.name}
+                  </button>
+                ))
+              ) : (
+                <p className="text-gray-500 text-sm">Loading locations...</p>
+              )}
             </div>
           </div>
         )}
@@ -225,53 +283,67 @@ const Browse = () => {
 
       {/* Grid of Items */}
       <div className="p-4 bg-gray-50">
-        <div className="grid grid-cols-2 gap-4">
-          {filteredItems.map((item) => (
-            <Link to={`/item/${item.id}`} key={item.id}>
-              <div className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-                <img
-                  src={item.image}
-                  alt={item.title}
-                  className="w-full h-40 object-cover"
-                />
-                <div className="p-3">
-                  <h3 className="font-semibold text-gray-800 mb-1 text-sm">
-                    {item.title}
-                  </h3>
-                  <p className="text-xs text-gray-600 mb-2">{item.location}</p>
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`text-xs px-2 py-1 rounded font-medium ${
-                        item.status === 'lost'
-                          ? 'bg-danger text-white'
-                          : 'bg-success text-white'
-                      }`}
-                    >
-                      {item.status === 'lost' ? 'Lost' : 'Found'}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {formatDistanceToNow(item.postedAt, { addSuffix: true }).replace('about ', '')}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        {/* Load More Button */}
-        {filteredItems.length > 0 && (
-          <button className="w-full mt-6 py-3 border-2 border-gray-300 rounded-lg text-gray-600 font-medium hover:bg-gray-50 transition-colors">
-            Load More Items
-          </button>
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            {error}
+          </div>
         )}
 
-        {/* Empty State */}
-        {filteredItems.length === 0 && (
+        {loading ? (
           <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No items found</p>
-            <p className="text-gray-400 text-sm mt-2">Try adjusting your filters</p>
+            <p className="text-gray-500">Loading items...</p>
           </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              {filteredItems.map((item) => (
+                <Link to={`/item/${item.id}`} key={item.id}>
+                  <div className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      className="w-full h-40 object-cover"
+                    />
+                    <div className="p-3">
+                      <h3 className="font-semibold text-gray-800 mb-1 text-sm">
+                        {item.title}
+                      </h3>
+                      <p className="text-xs text-gray-600 mb-2">{item.location}</p>
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={`text-xs px-2 py-1 rounded font-medium ${
+                            item.status === 'lost'
+                              ? 'bg-danger text-white'
+                              : 'bg-success text-white'
+                          }`}
+                        >
+                          {item.status === 'lost' ? 'Lost' : 'Found'}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {item.postedAt && formatDistanceToNow(new Date(item.postedAt), { addSuffix: true }).replace('about ', '')}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            {/* Load More Button */}
+            {filteredItems.length > 0 && (
+              <button className="w-full mt-6 py-3 border-2 border-gray-300 rounded-lg text-gray-600 font-medium hover:bg-gray-50 transition-colors">
+                Load More Items
+              </button>
+            )}
+
+            {/* Empty State */}
+            {filteredItems.length === 0 && !loading && (
+              <div className="text-center py-12">
+                <p className="text-gray-500 text-lg">No items found</p>
+                <p className="text-gray-400 text-sm mt-2">Try adjusting your filters</p>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
