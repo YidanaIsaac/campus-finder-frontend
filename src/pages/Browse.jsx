@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, ArrowLeft, SlidersHorizontal, Calendar, MapPin, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { itemsAPI, locationsAPI } from '../utils/api';
-import { formatDistanceToNow } from 'date-fns';
+import { itemsAPI } from '../utils/api';
 
 const Browse = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -21,9 +20,9 @@ const Browse = () => {
 
   const categories = [
     { id: 'all', name: 'All Items' },
-    { id: 'electronics', name: 'Electronics' },
-    { id: 'clothing', name: 'Clothing' },
-    { id: 'books', name: 'Books' },
+    { id: 'Electronics', name: 'Electronics' },
+    { id: 'Clothing', name: 'Clothing' },
+    { id: 'Books', name: 'Books' },
   ];
 
   // Fetch items based on selected tab
@@ -51,28 +50,47 @@ const Browse = () => {
     fetchItems();
   }, [selectedTab]);
 
-  // Fetch campus locations
+  // Set static campus locations
   useEffect(() => {
-    const fetchLocations = async () => {
-      try {
-        const data = await locationsAPI.getCampusLocations();
-        setCampusLocations(data.data || []);
-      } catch (err) {
-        console.error('Error fetching locations:', err);
-        setCampusLocations([]);
-      }
-    };
-
-    fetchLocations();
+    const locations = [
+      'Library',
+      'Main Building',
+      'Cafeteria',
+      'Sports Complex',
+      'Lecture Hall A',
+      'Lecture Hall B',
+      'Admin Block',
+      'Student Center',
+      'Parking Lot',
+      'Science Lab'
+    ];
+    setCampusLocations(locations);
   }, []);
+
+  // Format time ago
+  const formatTimeAgo = (date) => {
+    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+    
+    if (seconds < 60) return 'just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  };
 
   // Filter items based on all criteria
   const filteredItems = items.filter((item) => {
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         item.location.toLowerCase().includes(searchQuery.toLowerCase());
+    const itemName = item.itemName || '';
+    const itemLocation = item.location || '';
+    const itemCategory = item.category || '';
+    
+    const matchesSearch = itemName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         itemLocation.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || 
-                           item.category.toLowerCase() === selectedCategory.toLowerCase();
-    const matchesLocation = !selectedLocation || item.location === selectedLocation;
+                           itemCategory === selectedCategory;
+    const matchesLocation = !selectedLocation || itemLocation === selectedLocation;
     return matchesSearch && matchesCategory && matchesLocation;
   });
 
@@ -87,19 +105,25 @@ const Browse = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-gradient-to-r from-primary to-primary-dark text-white p-4 shadow-md">
-        <div className="flex items-center gap-4 mb-4">
+      <header 
+        className="fixed top-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-b-xl transition-transform duration-300 z-50"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1rem)', paddingLeft: '2rem', paddingRight: '2rem', paddingBottom: '2rem' }}
+      >
+        <div className="flex items-center gap-4">
           <Link to="/">
             <ArrowLeft className="w-6 h-6" />
           </Link>
-          <h1 className="text-xl font-bold">Browse Items</h1>
+          <h1 className="text-2xl font-bold">Browse Items</h1>
         </div>
       </header>
 
+      {/* Spacer for fixed header */}
+      <div style={{ height: 'calc(6rem + env(safe-area-inset-top))' }}></div>
+
       {/* Search and Filters Section */}
-      <div className="bg-white p-4">
+      <div className="bg-white p-4 -mt-4">
         {/* Search Bar */}
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -108,7 +132,7 @@ const Browse = () => {
             placeholder="Search items..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-600"
           />
         </div>
 
@@ -120,7 +144,7 @@ const Browse = () => {
               onClick={() => setSelectedCategory(category.id)}
               className={`px-4 py-2 rounded-full font-medium whitespace-nowrap transition-colors ${
                 selectedCategory === category.id
-                  ? 'bg-dark text-white'
+                  ? 'bg-gray-800 text-white'
                   : 'bg-gray-100 text-gray-700'
               }`}
             >
@@ -138,7 +162,7 @@ const Browse = () => {
               setShowFilterMenu(false);
             }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-              selectedDate ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700'
+              selectedDate ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'
             }`}
           >
             <Calendar className="w-4 h-4" />
@@ -152,7 +176,7 @@ const Browse = () => {
               setShowFilterMenu(false);
             }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-              selectedLocation ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700'
+              selectedLocation ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'
             }`}
           >
             <MapPin className="w-4 h-4" />
@@ -197,7 +221,7 @@ const Browse = () => {
               <input 
                 type="date" 
                 onChange={(e) => { setSelectedDate(e.target.value); setShowDatePicker(false); }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
               />
             </div>
           </div>
@@ -208,23 +232,19 @@ const Browse = () => {
           <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 max-h-64 overflow-y-auto">
             <h3 className="font-semibold mb-3 text-gray-800">Select Location</h3>
             <div className="space-y-2">
-              {campusLocations.length > 0 ? (
-                campusLocations.map((location) => (
-                  <button
-                    key={location.id || location}
-                    onClick={() => { setSelectedLocation(location); setShowLocationPicker(false); }}
-                    className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
-                      selectedLocation === location 
-                        ? 'bg-primary text-white' 
-                        : 'hover:bg-gray-200'
-                    }`}
-                  >
-                    {typeof location === 'string' ? location : location.name}
-                  </button>
-                ))
-              ) : (
-                <p className="text-gray-500 text-sm">Loading locations...</p>
-              )}
+              {campusLocations.map((location) => (
+                <button
+                  key={location}
+                  onClick={() => { setSelectedLocation(location); setShowLocationPicker(false); }}
+                  className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
+                    selectedLocation === location 
+                      ? 'bg-blue-600 text-white' 
+                      : 'hover:bg-gray-200'
+                  }`}
+                >
+                  {location}
+                </button>
+              ))}
             </div>
           </div>
         )}
@@ -236,20 +256,10 @@ const Browse = () => {
             <div className="space-y-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
-                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
                   <option>Most Recent</option>
                   <option>Oldest First</option>
                   <option>Nearest Location</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Item Category</label>
-                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
-                  <option>All Categories</option>
-                  <option>Electronics</option>
-                  <option>Clothing</option>
-                  <option>Books</option>
-                  <option>Keys</option>
                 </select>
               </div>
             </div>
@@ -282,7 +292,7 @@ const Browse = () => {
       </div>
 
       {/* Grid of Items */}
-      <div className="p-4 bg-gray-50">
+      <div className="p-4 bg-gray-50 pb-20">
         {error && (
           <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
             {error}
@@ -291,36 +301,40 @@ const Browse = () => {
 
         {loading ? (
           <div className="text-center py-12">
-            <p className="text-gray-500">Loading items...</p>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="text-gray-500 mt-2">Loading items...</p>
           </div>
         ) : (
           <>
             <div className="grid grid-cols-2 gap-4">
               {filteredItems.map((item) => (
-                <Link to={`/item/${item.id}`} key={item.id}>
+                <Link to={`/item/${item._id}`} key={item._id}>
                   <div className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                     <img
-                      src={item.image}
-                      alt={item.title}
+                      src={item.images?.[0] || '/images/placeholder.jpg'}
+                      alt={item.itemName}
                       className="w-full h-40 object-cover"
+                      onError={(e) => {
+                        e.target.src = '/images/placeholder.jpg';
+                      }}
                     />
                     <div className="p-3">
                       <h3 className="font-semibold text-gray-800 mb-1 text-sm">
-                        {item.title}
+                        {item.itemName}
                       </h3>
                       <p className="text-xs text-gray-600 mb-2">{item.location}</p>
                       <div className="flex items-center justify-between">
                         <span
                           className={`text-xs px-2 py-1 rounded font-medium ${
-                            item.status === 'lost'
-                              ? 'bg-danger text-white'
-                              : 'bg-success text-white'
+                            item.status === 'active'
+                              ? 'bg-red-600 text-white'
+                              : 'bg-green-600 text-white'
                           }`}
                         >
-                          {item.status === 'lost' ? 'Lost' : 'Found'}
+                          {item.status === 'active' ? 'Lost' : 'Found'}
                         </span>
                         <span className="text-xs text-gray-500">
-                          {item.postedAt && formatDistanceToNow(new Date(item.postedAt), { addSuffix: true }).replace('about ', '')}
+                          {formatTimeAgo(item.createdAt)}
                         </span>
                       </div>
                     </div>
@@ -329,18 +343,11 @@ const Browse = () => {
               ))}
             </div>
 
-            {/* Load More Button */}
-            {filteredItems.length > 0 && (
-              <button className="w-full mt-6 py-3 border-2 border-gray-300 rounded-lg text-gray-600 font-medium hover:bg-gray-50 transition-colors">
-                Load More Items
-              </button>
-            )}
-
             {/* Empty State */}
             {filteredItems.length === 0 && !loading && (
               <div className="text-center py-12">
                 <p className="text-gray-500 text-lg">No items found</p>
-                <p className="text-gray-400 text-sm mt-2">Try adjusting your filters</p>
+                <p className="text-gray-400 text-sm mt-2">Try adjusting your filters or be the first to report an item</p>
               </div>
             )}
           </>
