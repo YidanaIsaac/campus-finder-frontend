@@ -58,6 +58,12 @@ const Report = () => {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Image size should be less than 5MB');
+        return;
+      }
+
       setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -110,6 +116,9 @@ const Report = () => {
         itemData.dateFound = formData.date;
       }
 
+      // TODO: Image upload will be implemented when backend supports it
+      // For now, we're just submitting the item data without images
+
       // Create item based on type
       let response;
       if (formData.type === 'lost') {
@@ -118,8 +127,8 @@ const Report = () => {
         response = await itemsAPI.createFoundItem(itemData);
       }
 
-      alert(`${formData.type === 'lost' ? 'Lost' : 'Found'} item report submitted successfully!`);
-      navigate('/');
+      alert(`${formData.type === 'lost' ? 'Lost' : 'Found'} item reported successfully!`);
+      navigate('/browse');
     } catch (error) {
       console.error('Error submitting report:', error);
       alert('Failed to submit report: ' + error.message);
@@ -230,7 +239,7 @@ const Report = () => {
             onChange={handleInputChange}
             placeholder="Provide detailed description of the item..."
             rows="4"
-            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 ${
+            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 resize-none ${
               errors.description ? 'border-red-600' : 'border-gray-300'
             }`}
           />
@@ -318,20 +327,20 @@ const Report = () => {
           />
         </div>
 
-        {/* Photo Upload - Coming Soon */}
+        {/* Photo Upload */}
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <label className="block text-sm font-semibold text-gray-800 mb-2">
-            Photo (Coming Soon)
+            Photo (Optional)
           </label>
           <p className="text-xs text-gray-600 mb-3">
-            Image upload feature will be available soon
+            Add a photo to help others identify the item
           </p>
 
           {!imagePreview ? (
             <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
               <Camera className="w-12 h-12 text-gray-400 mb-2" />
               <span className="text-sm text-gray-600 mb-1">Click to upload photo</span>
-              <span className="text-xs text-gray-500">or use camera</span>
+              <span className="text-xs text-gray-500">Max size: 5MB</span>
               <input
                 type="file"
                 accept="image/*"
@@ -350,7 +359,7 @@ const Report = () => {
               <button
                 type="button"
                 onClick={removeImage}
-                className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 transition-colors"
+                className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 transition-colors shadow-md"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -362,13 +371,20 @@ const Report = () => {
         <button
           type="submit"
           disabled={loading}
-          className={`w-full py-4 rounded-lg font-semibold text-white transition-colors ${
+          className={`w-full py-4 rounded-lg font-semibold text-white transition-colors shadow-md ${
             formData.type === 'lost'
               ? 'bg-red-600 hover:bg-red-700'
               : 'bg-green-600 hover:bg-green-700'
           } disabled:opacity-50 disabled:cursor-not-allowed`}
         >
-          {loading ? 'Submitting...' : 'Submit Report'}
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              Submitting...
+            </span>
+          ) : (
+            `Submit ${formData.type === 'lost' ? 'Lost' : 'Found'} Report`
+          )}
         </button>
       </form>
     </div>
