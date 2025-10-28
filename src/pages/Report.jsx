@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Camera, MapPin, Calendar, Upload, X } from 'lucide-react';
+import { ArrowLeft, Camera, MapPin, Calendar, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { campusLocations } from '../utils/data';
+import { itemsAPI } from '../utils/api';
 
 const Report = () => {
   const navigate = useNavigate();
@@ -11,7 +11,7 @@ const Report = () => {
 
   const [formData, setFormData] = useState({
     type: initialType,
-    title: '',
+    itemName: '',
     category: '',
     description: '',
     location: '',
@@ -21,18 +21,30 @@ const Report = () => {
   });
 
   const [imagePreview, setImagePreview] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
   const categories = [
     'Electronics',
     'Clothing',
     'Books',
-    'Bags',
-    'Keys',
-    'Jewelry',
-    'Sports Equipment',
+    'Accessories',
     'Documents',
     'Other'
+  ];
+
+  const campusLocations = [
+    'Library',
+    'Main Building',
+    'Cafeteria',
+    'Sports Complex',
+    'Lecture Hall A',
+    'Lecture Hall B',
+    'Admin Block',
+    'Student Center',
+    'Parking Lot',
+    'Science Lab'
   ];
 
   const handleInputChange = (e) => {
@@ -46,6 +58,7 @@ const Report = () => {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
+      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
@@ -56,11 +69,12 @@ const Report = () => {
 
   const removeImage = () => {
     setImagePreview(null);
+    setImageFile(null);
   };
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.title.trim()) newErrors.title = 'Item name is required';
+    if (!formData.itemName.trim()) newErrors.itemName = 'Item name is required';
     if (!formData.category) newErrors.category = 'Category is required';
     if (!formData.description.trim()) newErrors.description = 'Description is required';
     if (!formData.location) newErrors.location = 'Location is required';
@@ -70,35 +84,77 @@ const Report = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validateForm()) {
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const itemData = {
+        itemName: formData.itemName,
+        category: formData.category,
+        description: formData.description,
+        location: formData.location,
+        color: formData.color || '',
+        brand: formData.brand || ''
+      };
+
+      // Add date field based on type
+      if (formData.type === 'lost') {
+        itemData.dateLost = formData.date;
+      } else {
+        itemData.dateFound = formData.date;
+      }
+
+      // Create item based on type
+      let response;
+      if (formData.type === 'lost') {
+        response = await itemsAPI.createLostItem(itemData);
+      } else {
+        response = await itemsAPI.createFoundItem(itemData);
+      }
+
       alert(`${formData.type === 'lost' ? 'Lost' : 'Found'} item report submitted successfully!`);
       navigate('/');
+    } catch (error) {
+      console.error('Error submitting report:', error);
+      alert('Failed to submit report: ' + error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-gradient-to-r from-primary to-primary-dark text-white p-4 shadow-md">
+      <header 
+        className="fixed top-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-b-xl z-50"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1rem)', paddingLeft: '2rem', paddingRight: '2rem', paddingBottom: '2rem' }}
+      >
         <div className="flex items-center gap-4">
           <Link to="/">
             <ArrowLeft className="w-6 h-6" />
           </Link>
-          <h1 className="text-xl font-bold">Report Item</h1>
+          <h1 className="text-2xl font-bold">Report Item</h1>
         </div>
       </header>
 
+      {/* Spacer for fixed header */}
+      <div style={{ height: 'calc(6rem + env(safe-area-inset-top))' }}></div>
+
       {/* Type Toggle */}
-      <div className="bg-white p-4 border-b">
+      <div className="bg-white p-4 border-b -mt-4">
         <div className="flex gap-2">
           <button
             type="button"
             onClick={() => setFormData(prev => ({ ...prev, type: 'lost' }))}
             className={`flex-1 py-3 rounded-lg font-semibold transition-colors ${
               formData.type === 'lost'
-                ? 'bg-danger text-white'
+                ? 'bg-red-600 text-white'
                 : 'bg-gray-100 text-gray-600'
             }`}
           >
@@ -109,7 +165,7 @@ const Report = () => {
             onClick={() => setFormData(prev => ({ ...prev, type: 'found' }))}
             className={`flex-1 py-3 rounded-lg font-semibold transition-colors ${
               formData.type === 'found'
-                ? 'bg-success text-white'
+                ? 'bg-green-600 text-white'
                 : 'bg-gray-100 text-gray-600'
             }`}
           >
@@ -119,7 +175,7 @@ const Report = () => {
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="p-4 space-y-4">
+      <form onSubmit={handleSubmit} className="p-4 space-y-4 pb-20">
         {/* Item Type */}
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <label className="block text-sm font-semibold text-gray-800 mb-2">
@@ -129,8 +185,8 @@ const Report = () => {
             name="category"
             value={formData.category}
             onChange={handleInputChange}
-            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${
-              errors.category ? 'border-danger' : 'border-gray-300'
+            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 ${
+              errors.category ? 'border-red-600' : 'border-gray-300'
             }`}
           >
             <option value="">Select item type</option>
@@ -139,7 +195,7 @@ const Report = () => {
             ))}
           </select>
           {errors.category && (
-            <p className="text-danger text-xs mt-1">{errors.category}</p>
+            <p className="text-red-600 text-xs mt-1">{errors.category}</p>
           )}
         </div>
 
@@ -150,16 +206,16 @@ const Report = () => {
           </label>
           <input
             type="text"
-            name="title"
-            value={formData.title}
+            name="itemName"
+            value={formData.itemName}
             onChange={handleInputChange}
             placeholder="e.g., iPhone 14 Pro, Blue Backpack"
-            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${
-              errors.title ? 'border-danger' : 'border-gray-300'
+            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 ${
+              errors.itemName ? 'border-red-600' : 'border-gray-300'
             }`}
           />
-          {errors.title && (
-            <p className="text-danger text-xs mt-1">{errors.title}</p>
+          {errors.itemName && (
+            <p className="text-red-600 text-xs mt-1">{errors.itemName}</p>
           )}
         </div>
 
@@ -174,12 +230,12 @@ const Report = () => {
             onChange={handleInputChange}
             placeholder="Provide detailed description of the item..."
             rows="4"
-            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${
-              errors.description ? 'border-danger' : 'border-gray-300'
+            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 ${
+              errors.description ? 'border-red-600' : 'border-gray-300'
             }`}
           />
           {errors.description && (
-            <p className="text-danger text-xs mt-1">{errors.description}</p>
+            <p className="text-red-600 text-xs mt-1">{errors.description}</p>
           )}
         </div>
 
@@ -194,8 +250,8 @@ const Report = () => {
             name="location"
             value={formData.location}
             onChange={handleInputChange}
-            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${
-              errors.location ? 'border-danger' : 'border-gray-300'
+            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 ${
+              errors.location ? 'border-red-600' : 'border-gray-300'
             }`}
           >
             <option value="">
@@ -206,34 +262,8 @@ const Report = () => {
             ))}
           </select>
           
-          <button
-            type="button"
-            onClick={() => {
-              if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                  (position) => {
-                    setFormData(prev => ({ 
-                      ...prev, 
-                      location: 'Library Building'
-                    }));
-                    alert('Location detected: Library Building');
-                  },
-                  (error) => {
-                    alert('Unable to get location. Please select manually.');
-                  }
-                );
-              } else {
-                alert('Geolocation is not supported by your browser.');
-              }
-            }}
-            className="flex items-center gap-2 text-primary text-sm font-medium hover:text-primary-dark transition-colors mt-2"
-          >
-            <MapPin className="w-4 h-4" />
-            Use current location
-          </button>
-          
           {errors.location && (
-            <p className="text-danger text-xs mt-2">{errors.location}</p>
+            <p className="text-red-600 text-xs mt-2">{errors.location}</p>
           )}
         </div>
 
@@ -249,22 +279,52 @@ const Report = () => {
             value={formData.date}
             onChange={handleInputChange}
             max={new Date().toISOString().split('T')[0]}
-            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${
-              errors.date ? 'border-danger' : 'border-gray-300'
+            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 ${
+              errors.date ? 'border-red-600' : 'border-gray-300'
             }`}
           />
           {errors.date && (
-            <p className="text-danger text-xs mt-1">{errors.date}</p>
+            <p className="text-red-600 text-xs mt-1">{errors.date}</p>
           )}
         </div>
 
-        {/* Photo Upload */}
+        {/* Color (Optional) */}
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <label className="block text-sm font-semibold text-gray-800 mb-2">
-            Photo (Optional)
+            Color (Optional)
+          </label>
+          <input
+            type="text"
+            name="color"
+            value={formData.color}
+            onChange={handleInputChange}
+            placeholder="e.g., Black, Blue, Red"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+          />
+        </div>
+
+        {/* Brand (Optional) */}
+        <div className="bg-white rounded-xl p-4 shadow-sm">
+          <label className="block text-sm font-semibold text-gray-800 mb-2">
+            Brand (Optional)
+          </label>
+          <input
+            type="text"
+            name="brand"
+            value={formData.brand}
+            onChange={handleInputChange}
+            placeholder="e.g., Apple, Nike, Samsung"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+          />
+        </div>
+
+        {/* Photo Upload - Coming Soon */}
+        <div className="bg-white rounded-xl p-4 shadow-sm">
+          <label className="block text-sm font-semibold text-gray-800 mb-2">
+            Photo (Coming Soon)
           </label>
           <p className="text-xs text-gray-600 mb-3">
-            Add a photo to help others identify the item
+            Image upload feature will be available soon
           </p>
 
           {!imagePreview ? (
@@ -290,7 +350,7 @@ const Report = () => {
               <button
                 type="button"
                 onClick={removeImage}
-                className="absolute top-2 right-2 bg-danger text-white p-2 rounded-full hover:bg-danger-dark transition-colors"
+                className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -301,13 +361,14 @@ const Report = () => {
         {/* Submit Button */}
         <button
           type="submit"
+          disabled={loading}
           className={`w-full py-4 rounded-lg font-semibold text-white transition-colors ${
             formData.type === 'lost'
-              ? 'bg-danger hover:bg-danger-dark'
-              : 'bg-success hover:bg-success-dark'
-          }`}
+              ? 'bg-red-600 hover:bg-red-700'
+              : 'bg-green-600 hover:bg-green-700'
+          } disabled:opacity-50 disabled:cursor-not-allowed`}
         >
-          Submit Report
+          {loading ? 'Submitting...' : 'Submit Report'}
         </button>
       </form>
     </div>
