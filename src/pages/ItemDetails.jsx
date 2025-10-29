@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate, Link, NavLink } from 'react-router-dom';
 import { 
   ArrowLeft, 
   MapPin, 
@@ -16,8 +16,7 @@ import {
   X,
   Send
 } from 'lucide-react';
-import { NavLink } from 'react-router-dom';
-import { mockItems } from '../utils/data';
+import { itemsAPI } from '../utils/api';
 import { formatDistanceToNow } from 'date-fns';
 
 const ItemDetails = () => {
@@ -26,12 +25,9 @@ const ItemDetails = () => {
   const [isFavorited, setIsFavorited] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [message, setMessage] = useState('');
-  
-  const item = mockItems.find(i => i.id === id);
-  
-  // Get reporter's contact info
-  const reporterPhone = item?.reportedBy?.phone;
-  const reporterEmail = item?.reportedBy?.email;
+  const [item, setItem] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const navItems = [
     { path: '/', icon: HomeIcon, label: 'Home' },
@@ -40,33 +36,88 @@ const ItemDetails = () => {
     { path: '/profile', icon: User, label: 'Profile' },
   ];
 
+  // Fetch item details from backend
+  useEffect(() => {
+    const fetchItemDetails = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Try to fetch as lost item first
+        let response;
+        try {
+          response = await itemsAPI.getItem(id, 'lost');
+        } catch (err) {
+          // If not found as lost, try as found item
+          try {
+            response = await itemsAPI.getItem(id, 'found');
+          } catch (foundErr) {
+            throw new Error('Item not found');
+          }
+        }
+        
+        setItem(response.data || response);
+      } catch (err) {
+        console.error('Error fetching item:', err);
+        setError(err.message || 'Failed to load item details');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchItemDetails();
+    }
+  }, [id]);
+
   const handleSendMessage = () => {
     if (message.trim()) {
       console.log('Message sent:', message);
+      alert('Message sent successfully! (In production, this would send a real message)');
       setMessage('');
       setShowMessageModal(false);
     }
   };
 
   const handleCall = () => {
-    console.log('Calling:', reporterPhone);
-    window.location.href = `tel:${reporterPhone}`;
+    if (item?.userId?.phone) {
+      window.location.href = `tel:${item.userId.phone}`;
+    } else {
+      alert('Phone number not available');
+    }
   };
 
   const handleEmail = () => {
-    const subject = encodeURIComponent(`Regarding: ${item.title}`);
-    const body = encodeURIComponent(`Hi ${item.reportedBy.name},\n\nI'm contacting you about the ${item.status} item: ${item.title}\n\nLocation: ${item.location}\nDate: ${new Date(item.date).toLocaleDateString()}\n\n`);
-    const mailtoLink = `mailto:${reporterEmail}?subject=${subject}&body=${body}`;
-    console.log('Opening email:', mailtoLink);
-    window.location.href = mailtoLink;
+    if (item?.userId?.email) {
+      const subject = encodeURIComponent(`Regarding: ${item.itemName}`);
+      const body = encodeURIComponent(
+        `Hi ${item.userId.name},\n\nI'm contacting you about the ${item.status} item: ${item.itemName}\n\nLocation: ${item.location}\nDate: ${new Date(item.dateLost || item.dateFound).toLocaleDateString()}\n\n`
+      );
+      window.location.href = `mailto:${item.userId.email}?subject=${subject}&body=${body}`;
+    } else {
+      alert('Email not available');
+    }
   };
 
-  if (!item) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-bold text-gray-800 mb-2">Item Not Found</h2>
-          <Link to="/browse" className="text-primary hover:underline">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="text-gray-600 mt-4">Loading item details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !item) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-bold text-gray-800 mb-2">
+            {error || 'Item Not Found'}
+          </h2>
+          <Link to="/browse" className="text-blue-600 hover:underline">
             Back to Browse
           </Link>
         </div>
@@ -74,16 +125,20 @@ const ItemDetails = () => {
     );
   }
 
+  const itemImage = item.images?.[0] || '/images/placeholder.jpg';
+  const itemStatus = item.status === 'active' || item.status === 'lost' ? 'lost' : 'found';
+  const itemDate = item.dateLost || item.dateFound || item.createdAt;
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Fixed Header */}
-      <header className="fixed top-0 left-0 right-0 bg-primary text-white p-4 flex items-center justify-between z-50 shadow-md">
+      <header className="fixed top-0 left-0 right-0 bg-blue-600 text-white p-4 flex items-center justify-between z-50 shadow-md">
         <button onClick={() => navigate(-1)} className="hover:opacity-80 transition-opacity">
           <ArrowLeft className="w-6 h-6" />
         </button>
         <h1 className="text-xl font-semibold">Item Details</h1>
         <button onClick={() => setIsFavorited(!isFavorited)} className="hover:opacity-80 transition-opacity">
-          <Heart 
+          <Heart
             className={`w-6 h-6 ${isFavorited ? 'fill-white' : ''}`}
           />
         </button>
@@ -94,21 +149,24 @@ const ItemDetails = () => {
         {/* Item Image with Status Badge */}
         <div className="relative bg-white">
           <img
-            src={item.image}
-            alt={item.title}
+            src={itemImage}
+            alt={item.itemName}
             className="w-full h-96 object-cover"
+            onError={(e) => {
+              e.target.src = '/images/placeholder.jpg';
+            }}
           />
           <span className={`absolute top-4 right-4 px-4 py-1 rounded-full text-sm font-semibold text-white ${
-            item.status === 'lost' ? 'bg-danger' : 'bg-success'
+            itemStatus === 'lost' ? 'bg-red-600' : 'bg-green-600'
           }`}>
-            {item.status === 'lost' ? 'Lost' : 'Found'}
+            {itemStatus === 'lost' ? 'Lost' : 'Found'}
           </span>
         </div>
 
         {/* Content */}
         <div className="bg-white px-6 py-4">
           {/* Title */}
-          <h2 className="text-2xl font-bold text-gray-800 mb-3">{item.title}</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-3">{item.itemName}</h2>
 
           {/* Location and Date */}
           <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
@@ -119,7 +177,7 @@ const ItemDetails = () => {
             <div className="flex items-center gap-1">
               <Calendar className="w-4 h-4" />
               <span>
-                {new Date(item.date).toLocaleDateString('en-US', { 
+                {new Date(itemDate).toLocaleDateString('en-US', { 
                   month: 'short', 
                   day: 'numeric', 
                   year: 'numeric' 
@@ -131,11 +189,15 @@ const ItemDetails = () => {
           {/* Status Badge */}
           <div className="flex items-center justify-between py-3 border-t border-b border-gray-200 mb-4">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-danger rounded-full"></div>
-              <span className="font-semibold text-gray-800">Unclaimed</span>
+              <div className={`w-2 h-2 rounded-full ${
+                item.status === 'claimed' ? 'bg-green-600' : 'bg-red-600'
+              }`}></div>
+              <span className="font-semibold text-gray-800">
+                {item.status === 'claimed' ? 'Claimed' : 'Unclaimed'}
+              </span>
             </div>
             <span className="text-sm text-gray-500">
-              Posted {formatDistanceToNow(item.postedAt, { addSuffix: true })}
+              Posted {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
             </span>
           </div>
 
@@ -167,59 +229,39 @@ const ItemDetails = () => {
                   <span className="font-semibold text-gray-800">{item.color}</span>
                 </div>
               )}
-              {item.lastSeen && (
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Last Seen</span>
-                  <span className="font-semibold text-gray-800">{item.lastSeen}</span>
-                </div>
-              )}
             </div>
           </div>
 
           {/* Reported By */}
-          <div className="mb-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-3">Reported By</h3>
-            <div className="bg-gray-50 rounded-xl p-4 flex items-center gap-3">
-              <img
-                src={item.reportedBy.avatar}
-                alt={item.reportedBy.name}
-                className="w-16 h-16 rounded-full"
-              />
-              <div className="flex-1">
-                <p className="font-semibold text-gray-800 text-lg">{item.reportedBy.name}</p>
-                <p className="text-sm text-gray-600">Student • {item.reportedBy.department || 'Computer Science'}</p>
-                <div className="flex items-center gap-1 mt-1">
-                  {[...Array(5)].map((_, i) => {
-                    const rating = item.reportedBy.rating;
-                    const fullStars = Math.floor(rating);
-                    const hasHalfStar = rating % 1 !== 0;
-                    
-                    if (i < fullStars) {
-                      return <Star key={i} className="w-3 h-3 fill-gray-800 text-gray-800" />;
-                    } else if (i === fullStars && hasHalfStar) {
-                      return (
-                        <div key={i} className="relative w-3 h-3">
-                          <Star className="w-3 h-3 text-gray-800 absolute" />
-                          <div className="overflow-hidden absolute" style={{ width: '50%' }}>
-                            <Star className="w-3 h-3 fill-gray-800 text-gray-800" />
-                          </div>
-                        </div>
-                      );
-                    } else {
-                      return <Star key={i} className="w-3 h-3 text-gray-300" />;
-                    }
-                  })}
-                  <span className="text-xs text-gray-600 ml-1">({item.reportedBy.rating})</span>
+          {item.userId && (
+            <div className="mb-6">
+              <h3 className="text-lg font-bold text-gray-800 mb-3">Reported By</h3>
+              <div className="bg-gray-50 rounded-xl p-4 flex items-center gap-3">
+                <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-2xl">
+                  {item.userId.name?.charAt(0) || 'U'}
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-gray-800 text-lg">{item.userId.name}</p>
+                  <p className="text-sm text-gray-600">
+                    {item.userId.userType?.charAt(0).toUpperCase() + item.userId.userType?.slice(1) || 'User'}
+                    {item.userId.department && ` • ${item.userId.department}`}
+                  </p>
+                  <div className="flex items-center gap-1 mt-1">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className={`w-3 h-3 ${i < 4 ? 'fill-gray-800 text-gray-800' : 'text-gray-300'}`} />
+                    ))}
+                    <span className="text-xs text-gray-600 ml-1">(4.5)</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Action Buttons */}
           <div className="space-y-3">
             <button 
               onClick={() => setShowMessageModal(true)}
-              className="w-full bg-primary text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-primary-dark transition-colors"
+              className="w-full bg-blue-600 text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors"
             >
               <MessageSquare className="w-5 h-5" />
               Send Message
@@ -263,14 +305,12 @@ const ItemDetails = () => {
             {/* Modal Body */}
             <div className="p-4">
               <div className="flex items-center gap-3 mb-4 bg-gray-50 p-3 rounded-xl">
-                <img
-                  src={item.reportedBy.avatar}
-                  alt={item.reportedBy.name}
-                  className="w-12 h-12 rounded-full"
-                />
+                <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
+                  {item.userId?.name?.charAt(0) || 'U'}
+                </div>
                 <div>
-                  <p className="font-semibold text-gray-800">{item.reportedBy.name}</p>
-                  <p className="text-sm text-gray-600">About: {item.title}</p>
+                  <p className="font-semibold text-gray-800">{item.userId?.name || 'User'}</p>
+                  <p className="text-sm text-gray-600">About: {item.itemName}</p>
                 </div>
               </div>
 
@@ -278,7 +318,7 @@ const ItemDetails = () => {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Type your message here..."
-                className="w-full h-32 p-3 border border-gray-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full h-32 p-3 border border-gray-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
               />
 
               <div className="flex gap-3 mt-4">
@@ -291,7 +331,7 @@ const ItemDetails = () => {
                 <button
                   onClick={handleSendMessage}
                   disabled={!message.trim()}
-                  className="flex-1 py-3 bg-primary text-white rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-primary-dark transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
                   <Send className="w-5 h-5" />
                   Send
@@ -313,7 +353,7 @@ const ItemDetails = () => {
                 className={({ isActive }) =>
                   `flex flex-col items-center justify-center flex-1 h-full transition-colors ${
                     isActive
-                      ? 'text-primary'
+                      ? 'text-blue-600'
                       : 'text-gray-500 hover:text-gray-700'
                   }`
                 }
@@ -321,7 +361,7 @@ const ItemDetails = () => {
                 {({ isActive }) => (
                   <>
                     <item.icon
-                      className={`w-6 h-6 ${isActive ? 'fill-primary' : ''}`}
+                      className={`w-6 h-6 ${isActive ? 'fill-blue-600' : ''}`}
                     />
                     <span className="text-xs mt-1 font-medium">
                       {item.label}

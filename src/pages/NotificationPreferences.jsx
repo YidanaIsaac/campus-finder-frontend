@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft,
   Bell,
@@ -9,10 +9,12 @@ import {
   CheckCircle,
   AlertCircle,
   Volume2,
-  Vibrate
+  Vibrate,
+  Save
 } from 'lucide-react';
 
 const NotificationPreferences = () => {
+  const navigate = useNavigate();
   const [preferences, setPreferences] = useState({
     // Push Notifications
     pushEnabled: true,
@@ -37,6 +39,31 @@ const NotificationPreferences = () => {
     quietEnd: '08:00',
   });
 
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Load preferences from localStorage on mount
+  useEffect(() => {
+    const loadPreferences = () => {
+      try {
+        setLoading(true);
+        const savedPreferences = localStorage.getItem('notificationPreferences');
+        
+        if (savedPreferences) {
+          setPreferences(JSON.parse(savedPreferences));
+        }
+      } catch (err) {
+        console.error('Error loading preferences:', err);
+        setError('Failed to load preferences');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPreferences();
+  }, []);
+
   const togglePreference = (key) => {
     setPreferences(prev => ({
       ...prev,
@@ -51,10 +78,41 @@ const NotificationPreferences = () => {
     }));
   };
 
+  const handleSave = async () => {
+    setSaving(true);
+    
+    try {
+      // Save to localStorage (In production, this would call an API)
+      localStorage.setItem('notificationPreferences', JSON.stringify(preferences));
+      
+      // In a real implementation, you would call:
+      // await notificationsAPI.updatePreferences(preferences);
+      
+      alert('Notification preferences saved successfully!');
+      navigate('/profile');
+    } catch (err) {
+      console.error('Error saving preferences:', err);
+      alert('Failed to save preferences. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="text-gray-600 mt-4">Loading preferences...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Fixed Header */}
-      <header className="fixed top-0 left-0 right-0 bg-gradient-to-r from-primary to-primary-dark text-white p-4 flex items-center justify-between z-40 shadow-md">
+      <header className="fixed top-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4 flex items-center justify-between z-40 shadow-md">
         <Link to="/profile" className="hover:opacity-80 transition-opacity">
           <ArrowLeft className="w-6 h-6" />
         </Link>
@@ -64,6 +122,13 @@ const NotificationPreferences = () => {
 
       {/* Scrollable Content */}
       <div className="pt-20 px-4 pb-6">
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
         {/* Push Notifications Section */}
         <div className="mb-6">
           <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
@@ -82,7 +147,7 @@ const NotificationPreferences = () => {
               <button
                 onClick={() => togglePreference('pushEnabled')}
                 className={`relative w-12 h-6 rounded-full transition-colors ${
-                  preferences.pushEnabled ? 'bg-primary' : 'bg-gray-300'
+                  preferences.pushEnabled ? 'bg-blue-600' : 'bg-gray-300'
                 }`}
               >
                 <div
@@ -106,7 +171,7 @@ const NotificationPreferences = () => {
                   <button
                     onClick={() => togglePreference('itemMatches')}
                     className={`relative w-12 h-6 rounded-full transition-colors ${
-                      preferences.itemMatches ? 'bg-primary' : 'bg-gray-300'
+                      preferences.itemMatches ? 'bg-blue-600' : 'bg-gray-300'
                     }`}
                   >
                     <div
@@ -128,7 +193,7 @@ const NotificationPreferences = () => {
                   <button
                     onClick={() => togglePreference('newMessages')}
                     className={`relative w-12 h-6 rounded-full transition-colors ${
-                      preferences.newMessages ? 'bg-primary' : 'bg-gray-300'
+                      preferences.newMessages ? 'bg-blue-600' : 'bg-gray-300'
                     }`}
                   >
                     <div
@@ -150,7 +215,7 @@ const NotificationPreferences = () => {
                   <button
                     onClick={() => togglePreference('itemClaimed')}
                     className={`relative w-12 h-6 rounded-full transition-colors ${
-                      preferences.itemClaimed ? 'bg-primary' : 'bg-gray-300'
+                      preferences.itemClaimed ? 'bg-blue-600' : 'bg-gray-300'
                     }`}
                   >
                     <div
@@ -172,7 +237,7 @@ const NotificationPreferences = () => {
                   <button
                     onClick={() => togglePreference('itemReturned')}
                     className={`relative w-12 h-6 rounded-full transition-colors ${
-                      preferences.itemReturned ? 'bg-primary' : 'bg-gray-300'
+                      preferences.itemReturned ? 'bg-blue-600' : 'bg-gray-300'
                     }`}
                   >
                     <div
@@ -205,7 +270,7 @@ const NotificationPreferences = () => {
               <button
                 onClick={() => togglePreference('emailEnabled')}
                 className={`relative w-12 h-6 rounded-full transition-colors ${
-                  preferences.emailEnabled ? 'bg-primary' : 'bg-gray-300'
+                  preferences.emailEnabled ? 'bg-blue-600' : 'bg-gray-300'
                 }`}
               >
                 <div
@@ -229,7 +294,7 @@ const NotificationPreferences = () => {
                   <button
                     onClick={() => togglePreference('emailMatches')}
                     className={`relative w-12 h-6 rounded-full transition-colors ${
-                      preferences.emailMatches ? 'bg-primary' : 'bg-gray-300'
+                      preferences.emailMatches ? 'bg-blue-600' : 'bg-gray-300'
                     }`}
                   >
                     <div
@@ -251,7 +316,7 @@ const NotificationPreferences = () => {
                   <button
                     onClick={() => togglePreference('emailMessages')}
                     className={`relative w-12 h-6 rounded-full transition-colors ${
-                      preferences.emailMessages ? 'bg-primary' : 'bg-gray-300'
+                      preferences.emailMessages ? 'bg-blue-600' : 'bg-gray-300'
                     }`}
                   >
                     <div
@@ -273,7 +338,7 @@ const NotificationPreferences = () => {
                   <button
                     onClick={() => togglePreference('emailWeeklySummary')}
                     className={`relative w-12 h-6 rounded-full transition-colors ${
-                      preferences.emailWeeklySummary ? 'bg-primary' : 'bg-gray-300'
+                      preferences.emailWeeklySummary ? 'bg-blue-600' : 'bg-gray-300'
                     }`}
                   >
                     <div
@@ -306,7 +371,7 @@ const NotificationPreferences = () => {
               <button
                 onClick={() => togglePreference('soundEnabled')}
                 className={`relative w-12 h-6 rounded-full transition-colors ${
-                  preferences.soundEnabled ? 'bg-primary' : 'bg-gray-300'
+                  preferences.soundEnabled ? 'bg-blue-600' : 'bg-gray-300'
                 }`}
               >
                 <div
@@ -328,7 +393,7 @@ const NotificationPreferences = () => {
               <button
                 onClick={() => togglePreference('vibrationEnabled')}
                 className={`relative w-12 h-6 rounded-full transition-colors ${
-                  preferences.vibrationEnabled ? 'bg-primary' : 'bg-gray-300'
+                  preferences.vibrationEnabled ? 'bg-blue-600' : 'bg-gray-300'
                 }`}
               >
                 <div
@@ -359,7 +424,7 @@ const NotificationPreferences = () => {
               <button
                 onClick={() => togglePreference('quietHoursEnabled')}
                 className={`relative w-12 h-6 rounded-full transition-colors ${
-                  preferences.quietHoursEnabled ? 'bg-primary' : 'bg-gray-300'
+                  preferences.quietHoursEnabled ? 'bg-blue-600' : 'bg-gray-300'
                 }`}
               >
                 <div
@@ -381,7 +446,7 @@ const NotificationPreferences = () => {
                       type="time"
                       value={preferences.quietStart}
                       onChange={(e) => handleTimeChange('quietStart', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                     />
                   </div>
                   <div>
@@ -392,7 +457,7 @@ const NotificationPreferences = () => {
                       type="time"
                       value={preferences.quietEnd}
                       onChange={(e) => handleTimeChange('quietEnd', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                     />
                   </div>
                 </div>
@@ -405,8 +470,22 @@ const NotificationPreferences = () => {
         </div>
 
         {/* Save Button */}
-        <button className="w-full bg-primary text-white py-4 rounded-xl font-semibold hover:bg-primary-dark transition-colors">
-          Save Preferences
+        <button 
+          onClick={handleSave}
+          disabled={saving}
+          className="w-full bg-blue-600 text-white py-4 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          {saving ? (
+            <>
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="w-5 h-5" />
+              Save Preferences
+            </>
+          )}
         </button>
       </div>
     </div>

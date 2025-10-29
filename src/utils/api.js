@@ -38,7 +38,11 @@ export const authAPI = {
     method: 'POST',
     body: JSON.stringify({ email, password })
   }),
-  getCurrentUser: () => apiCall('/auth/me')
+  getCurrentUser: () => apiCall('/auth/me'),
+  updateProfile: (data) => apiCall('/auth/update', {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  })
 };
 
 // Items
@@ -73,7 +77,7 @@ export const itemsAPI = {
   getUserItems: () => apiCall('/items/user/items')
 };
 
-// Notifications
+// Add to notificationsAPI object:
 export const notificationsAPI = {
   getNotifications: () => apiCall('/notifications'),
   markAsRead: (id) => apiCall(`/notifications/${id}/read`, {
@@ -84,5 +88,13 @@ export const notificationsAPI = {
   }),
   deleteNotification: (id) => apiCall(`/notifications/${id}`, {
     method: 'DELETE'
-  })
+  }),
+  
+  // Add this new method:
+  updatePreferences: (preferences) => apiCall('/notifications/preferences', {
+    method: 'PUT',
+    body: JSON.stringify(preferences)
+  }),
+  
+  getPreferences: () => apiCall('/notifications/preferences')
 };

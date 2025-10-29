@@ -4,7 +4,7 @@ export const currentUser = {
   name: 'Isaac Yidana',
   studentId: '11051970',
   email: 'iyidana@campus.edu',
-  phone: '+233244123456', // Add this line
+  phone: '+233244123456', 
 avatar: '/images/avatar.png',
   role: 'Student',
   department: 'Computer Science',
