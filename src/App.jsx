@@ -14,6 +14,7 @@ import NotificationPreferences from './pages/NotificationPreferences';
 import UserGuide from './pages/UserGuide';
 import TermsOfService from './pages/Terms0fService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import Chat from './pages/Chat';
 import './index.css';
 import ChangePassword from './pages/ChangePassword';
 
@@ -45,6 +46,7 @@ function App() {
         <Route path="/terms-of-service" element={<ProtectedRoute><TermsOfService /></ProtectedRoute>} />
         <Route path="/privacy-policy" element={<ProtectedRoute><PrivacyPolicy /></ProtectedRoute>} />
         <Route path="/item/:id" element={<ProtectedRoute><ItemDetails /></ProtectedRoute>} />
+        <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
         <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
 
         <Route
