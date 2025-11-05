@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft,
   Moon,
@@ -10,10 +10,13 @@ import {
   Lock,
   Users,
   MessageSquare,
-  Shield
+  Shield,
+  Trash2
 } from 'lucide-react';
+import { authAPI } from '../utils/api';
 
 const PrivacySettings = () => {
+  const navigate = useNavigate();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [settings, setSettings] = useState({
     showProfile: true,
@@ -25,22 +28,130 @@ const PrivacySettings = () => {
     publicProfile: true,
   });
 
-  const toggleSetting = (key) => {
-    setSettings(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Load privacy settings from API
+  useEffect(() => {
+    const loadPrivacySettings = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await authAPI.getPrivacySettings();
+        const data = response.data || response;
+        
+        if (data && Object.keys(data).length > 0) {
+          setSettings(prevSettings => ({
+            ...prevSettings,
+            ...data
+          }));
+        }
+
+        // Load dark mode preference from localStorage
+        const savedDarkMode = localStorage.getItem('darkMode');
+        if (savedDarkMode) {
+          setIsDarkMode(JSON.parse(savedDarkMode));
+        }
+      } catch (err) {
+        console.error('Error loading privacy settings:', err);
+        
+        // Try to load from localStorage as fallback
+        const savedSettings = localStorage.getItem('privacySettings');
+        if (savedSettings) {
+          setSettings(JSON.parse(savedSettings));
+        }
+        
+        // Only show error if it's not a 404
+        if (err.message && !err.message.includes('404')) {
+          setError('Failed to load privacy settings. Using defaults.');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPrivacySettings();
+  }, []);
+
+  const toggleSetting = async (key) => {
+    const newSettings = {
+      ...settings,
+      [key]: !settings[key]
+    };
+    
+    setSettings(newSettings);
+    
+    // Auto-save to backend
+    try {
+      await authAPI.updatePrivacySettings(newSettings);
+      localStorage.setItem('privacySettings', JSON.stringify(newSettings));
+    } catch (err) {
+      console.error('Error saving setting:', err);
+      // Still save to localStorage even if API fails
+      localStorage.setItem('privacySettings', JSON.stringify(newSettings));
+    }
   };
 
   const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
+    const newDarkMode = !isDarkMode;
+    setIsDarkMode(newDarkMode);
+    localStorage.setItem('darkMode', JSON.stringify(newDarkMode));
   };
+
+  const handleDeleteAccount = () => {
+    const confirmDelete = window.confirm(
+      'Are you sure you want to delete your account?\n\n' +
+      'This action is PERMANENT and cannot be undone. All your data will be deleted:\n' +
+      '- Your profile information\n' +
+      '- All reported items\n' +
+      '- All messages and notifications\n\n' +
+      'Type "DELETE" in the next prompt to confirm.'
+    );
+
+    if (confirmDelete) {
+      const confirmText = prompt('Type "DELETE" to confirm account deletion:');
+      
+      if (confirmText === 'DELETE') {
+        handleDeleteAccountConfirmed();
+      } else {
+        alert('Account deletion cancelled. The text did not match.');
+      }
+    }
+  };
+
+  const handleDeleteAccountConfirmed = async () => {
+    try {
+      await authAPI.deleteAccount();
+      
+      // Clear all local data
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      alert('Your account has been deleted successfully.');
+      navigate('/login');
+    } catch (err) {
+      console.error('Error deleting account:', err);
+      alert('Failed to delete account: ' + (err.message || 'Please try again'));
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="text-gray-600 mt-4">Loading privacy settings...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen pb-20 transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       {/* Fixed Header */}
       <header className={`fixed top-0 left-0 right-0 p-4 flex items-center justify-between z-40 shadow-md transition-colors duration-300 ${
-        isDarkMode ? 'bg-gray-800 text-white' : 'bg-gradient-to-r from-primary to-primary-dark text-white'
+        isDarkMode ? 'bg-gray-800 text-white' : 'bg-gradient-to-r from-blue-600 to-blue-800 text-white'
       }`}>
         <Link to="/profile" className="hover:opacity-80 transition-opacity">
           <ArrowLeft className="w-6 h-6" />
@@ -51,6 +162,13 @@ const PrivacySettings = () => {
 
       {/* Scrollable Content */}
       <div className="pt-20 px-4 pb-6">
+        {error && (
+          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-yellow-700 flex items-center gap-2">
+            <Shield className="w-5 h-5 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
         {/* Appearance Section */}
         <div className="mb-6">
           <h2 className={`text-lg font-bold mb-3 flex items-center gap-2 transition-colors ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
@@ -73,7 +191,7 @@ const PrivacySettings = () => {
               <button
                 onClick={toggleDarkMode}
                 className={`relative w-12 h-6 rounded-full transition-colors ${
-                  isDarkMode ? 'bg-primary' : 'bg-gray-300'
+                  isDarkMode ? 'bg-blue-600' : 'bg-gray-300'
                 }`}
               >
                 <div
@@ -104,7 +222,7 @@ const PrivacySettings = () => {
               <button
                 onClick={() => toggleSetting('publicProfile')}
                 className={`relative w-12 h-6 rounded-full transition-colors ${
-                  settings.publicProfile ? 'bg-primary' : 'bg-gray-300'
+                  settings.publicProfile ? 'bg-blue-600' : 'bg-gray-300'
                 }`}
               >
                 <div
@@ -126,7 +244,7 @@ const PrivacySettings = () => {
               <button
                 onClick={() => toggleSetting('showLocation')}
                 className={`relative w-12 h-6 rounded-full transition-colors ${
-                  settings.showLocation ? 'bg-primary' : 'bg-gray-300'
+                  settings.showLocation ? 'bg-blue-600' : 'bg-gray-300'
                 }`}
               >
                 <div
@@ -148,7 +266,7 @@ const PrivacySettings = () => {
               <button
                 onClick={() => toggleSetting('showEmail')}
                 className={`relative w-12 h-6 rounded-full transition-colors ${
-                  settings.showEmail ? 'bg-primary' : 'bg-gray-300'
+                  settings.showEmail ? 'bg-blue-600' : 'bg-gray-300'
                 }`}
               >
                 <div
@@ -170,7 +288,7 @@ const PrivacySettings = () => {
               <button
                 onClick={() => toggleSetting('showPhone')}
                 className={`relative w-12 h-6 rounded-full transition-colors ${
-                  settings.showPhone ? 'bg-primary' : 'bg-gray-300'
+                  settings.showPhone ? 'bg-blue-600' : 'bg-gray-300'
                 }`}
               >
                 <div
@@ -201,7 +319,7 @@ const PrivacySettings = () => {
               <button
                 onClick={() => toggleSetting('receiveNotifications')}
                 className={`relative w-12 h-6 rounded-full transition-colors ${
-                  settings.receiveNotifications ? 'bg-primary' : 'bg-gray-300'
+                  settings.receiveNotifications ? 'bg-blue-600' : 'bg-gray-300'
                 }`}
               >
                 <div
@@ -223,7 +341,7 @@ const PrivacySettings = () => {
               <button
                 onClick={() => toggleSetting('allowMessages')}
                 className={`relative w-12 h-6 rounded-full transition-colors ${
-                  settings.allowMessages ? 'bg-primary' : 'bg-gray-300'
+                  settings.allowMessages ? 'bg-blue-600' : 'bg-gray-300'
                 }`}
               >
                 <div
@@ -277,19 +395,26 @@ const PrivacySettings = () => {
 
         {/* Action Buttons */}
         <div className="space-y-3">
-          <button className={`w-full py-3 rounded-xl font-semibold border transition-colors ${
-            isDarkMode 
-              ? 'bg-gray-800 text-primary border-primary hover:bg-primary hover:text-white' 
-              : 'bg-white text-primary border-primary hover:bg-primary hover:text-white'
-          }`}>
+          <Link
+            to="/privacy-policy"
+            className={`w-full py-3 rounded-xl font-semibold border transition-colors flex items-center justify-center ${
+              isDarkMode 
+                ? 'bg-gray-800 text-blue-400 border-blue-400 hover:bg-blue-600 hover:text-white' 
+                : 'bg-white text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white'
+            }`}
+          >
             View Privacy Policy
-          </button>
+          </Link>
           
-          <button className={`w-full py-3 rounded-xl font-semibold border transition-colors ${
-            isDarkMode 
-              ? 'bg-gray-800 text-danger border-danger hover:bg-danger hover:text-white' 
-              : 'bg-white text-danger border-danger hover:bg-danger hover:text-white'
-          }`}>
+          <button
+            onClick={handleDeleteAccount}
+            className={`w-full py-3 rounded-xl font-semibold border transition-colors flex items-center justify-center gap-2 ${
+              isDarkMode 
+                ? 'bg-gray-800 text-red-400 border-red-400 hover:bg-red-600 hover:text-white' 
+                : 'bg-white text-red-600 border-red-600 hover:bg-red-600 hover:text-white'
+            }`}
+          >
+            <Trash2 className="w-5 h-5" />
             Delete My Account
           </button>
         </div>

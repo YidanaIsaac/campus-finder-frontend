@@ -1,6 +1,5 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
-// Get token from localStorage
 const getToken = () => localStorage.getItem('token');
 
 const apiCall = async (endpoint, options = {}) => {
@@ -15,20 +14,30 @@ const apiCall = async (endpoint, options = {}) => {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers
-  });
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'API error');
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      throw new Error(`Server returned non-JSON response: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || `HTTP error! status: ${response.status}`);
+    }
+
+    return data;
+  } catch (error) {
+    console.error('API Call Error:', error);
+    throw error;
   }
-
-  return response.json();
 };
 
-// Authentication
 export const authAPI = {
   register: (data) => apiCall('/auth/register', {
     method: 'POST',
@@ -42,10 +51,21 @@ export const authAPI = {
   updateProfile: (data) => apiCall('/auth/update', {
     method: 'PUT',
     body: JSON.stringify(data)
+  }),
+  changePassword: (data) => apiCall('/auth/change-password', {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  }),
+  getPrivacySettings: () => apiCall('/auth/privacy-settings'),
+  updatePrivacySettings: (settings) => apiCall('/auth/privacy-settings', {
+    method: 'PUT',
+    body: JSON.stringify(settings)
+  }),
+  deleteAccount: () => apiCall('/auth/account', {
+    method: 'DELETE'
   })
 };
 
-// Items
 export const itemsAPI = {
   getLostItems: (filters = {}) => {
     const query = new URLSearchParams(filters).toString();
@@ -77,7 +97,6 @@ export const itemsAPI = {
   getUserItems: () => apiCall('/items/user/items')
 };
 
-// Add to notificationsAPI object:
 export const notificationsAPI = {
   getNotifications: () => apiCall('/notifications'),
   markAsRead: (id) => apiCall(`/notifications/${id}/read`, {
@@ -89,12 +108,21 @@ export const notificationsAPI = {
   deleteNotification: (id) => apiCall(`/notifications/${id}`, {
     method: 'DELETE'
   }),
-  
-  // Add this new method:
+  getPreferences: () => apiCall('/notifications/preferences'),
   updatePreferences: (preferences) => apiCall('/notifications/preferences', {
     method: 'PUT',
     body: JSON.stringify(preferences)
+  })
+};
+
+export const supportAPI = {
+  sendSupportMessage: (data) => apiCall('/support/contact', {
+    method: 'POST',
+    body: JSON.stringify(data)
   }),
-  
-  getPreferences: () => apiCall('/notifications/preferences')
+  getFAQs: () => apiCall('/support/faqs'),
+  reportBug: (data) => apiCall('/support/bug-report', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
 };

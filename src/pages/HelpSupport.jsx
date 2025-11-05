@@ -12,6 +12,7 @@ import {
   AlertCircle,
   Send
 } from 'lucide-react';
+import { supportAPI } from '../utils/api';
 
 const HelpSupport = () => {
   const navigate = useNavigate();
@@ -22,20 +23,37 @@ const HelpSupport = () => {
     subject: '',
     message: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (formData.name && formData.email && formData.subject && formData.message) {
-      alert('Your message has been sent! We\'ll get back to you soon.');
+    
+    if (!formData.name || !formData.email || !formData.subject || !formData.message) {
+      alert('Please fill in all fields');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Send support message to backend API
+      await supportAPI.sendSupportMessage(formData);
+      
+      alert('Your message has been sent successfully! We\'ll get back to you within 24 hours.');
+      
+      // Reset form and close modal
       setShowContactForm(false);
       setFormData({ name: '', email: '', subject: '', message: '' });
-    } else {
-      alert('Please fill in all fields');
+    } catch (error) {
+      console.error('Error sending support message:', error);
+      alert('Failed to send message: ' + (error.message || 'Please try again later'));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -62,15 +80,15 @@ const HelpSupport = () => {
     },
     {
       question: 'Can I edit or delete my report?',
-      answer: 'Currently, you can view your reports on your profile page. To edit or delete, please contact support. We\'re working on adding this feature soon.'
+      answer: 'Yes! Go to your profile page, click on any of your active reports, and you\'ll see options to edit or delete. You can update item details, photos, and status at any time.'
     },
     {
       question: 'I found my item. How do I mark it as resolved?',
-      answer: 'Go to your profile, find the item in your Active reports, and click on it. You\'ll see an option to mark it as resolved.'
+      answer: 'Go to your profile, find the item in your Active reports, and click on it. You\'ll see an option to mark it as "Claimed" or "Resolved".'
     },
     {
       question: 'How do notifications work?',
-      answer: 'You\'ll receive notifications when: someone finds an item matching your lost report, your found item is claimed, or there\'s a possible match. Check the Notifications page regularly.'
+      answer: 'You\'ll receive notifications when: someone finds an item matching your lost report, your found item is claimed, someone sends you a message, or there\'s a possible match. Check the Notifications page regularly.'
     }
   ];
 
@@ -136,9 +154,9 @@ const HelpSupport = () => {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-gradient-to-r from-primary to-primary-dark text-white p-4 shadow-md" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1rem)' }}>
+      <header className="sticky top-0 z-50 bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4 shadow-md">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate(-1)}>
+          <button onClick={() => navigate(-1)} className="hover:opacity-80 transition-opacity">
             <ArrowLeft className="w-6 h-6" />
           </button>
           <h1 className="text-xl font-bold">Help & Support</h1>
@@ -166,7 +184,7 @@ const HelpSupport = () => {
                     href={method.action}
                     target={method.action.startsWith('https') ? '_blank' : undefined}
                     rel={method.action.startsWith('https') ? 'noopener noreferrer' : undefined}
-                    className="text-primary font-medium text-sm hover:underline"
+                    className="text-blue-600 font-medium text-sm hover:underline"
                   >
                     {method.actionText}
                   </a>
@@ -231,7 +249,7 @@ const HelpSupport = () => {
         {/* Send Message Button */}
         <button
           onClick={() => setShowContactForm(true)}
-          className="w-full bg-primary text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-primary-dark transition-colors"
+          className="w-full bg-blue-600 text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors"
         >
           <Send className="w-5 h-5" />
           Send Us a Message
@@ -246,8 +264,8 @@ const HelpSupport = () => {
 
       {/* Contact Form Modal */}
       {showContactForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-[60]">
-          <div className="bg-white rounded-t-3xl w-full max-w-[480px] mx-auto p-6 pb-8 animate-slide-up">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full max-w-[480px] mx-auto p-6 pb-8 animate-slide-up">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-gray-800">Contact Support</h3>
               <button 
@@ -255,7 +273,7 @@ const HelpSupport = () => {
                   setShowContactForm(false);
                   setFormData({ name: '', email: '', subject: '', message: '' });
                 }}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -274,7 +292,8 @@ const HelpSupport = () => {
                   value={formData.name}
                   onChange={handleInputChange}
                   placeholder="Enter your name"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  disabled={isSubmitting}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -288,7 +307,8 @@ const HelpSupport = () => {
                   value={formData.email}
                   onChange={handleInputChange}
                   placeholder="Enter your email"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  disabled={isSubmitting}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -300,7 +320,8 @@ const HelpSupport = () => {
                   name="subject"
                   value={formData.subject}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  disabled={isSubmitting}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 >
                   <option value="">Select a subject</option>
                   <option value="technical">Technical Issue</option>
@@ -321,7 +342,8 @@ const HelpSupport = () => {
                   onChange={handleInputChange}
                   placeholder="Describe your issue or question..."
                   rows="5"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                  disabled={isSubmitting}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 resize-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -332,15 +354,24 @@ const HelpSupport = () => {
                     setShowContactForm(false);
                     setFormData({ name: '', email: '', subject: '', message: '' });
                   }}
-                  className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                  disabled={isSubmitting}
+                  className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-primary-dark transition-colors"
+                  disabled={isSubmitting}
+                  className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  Send
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Sending...
+                    </>
+                  ) : (
+                    'Send'
+                  )}
                 </button>
               </div>
             </form>

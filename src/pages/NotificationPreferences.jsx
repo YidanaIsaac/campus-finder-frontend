@@ -12,6 +12,7 @@ import {
   Vibrate,
   Save
 } from 'lucide-react';
+import { notificationsAPI } from '../utils/api';
 
 const NotificationPreferences = () => {
   const navigate = useNavigate();
@@ -43,19 +44,36 @@ const NotificationPreferences = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
-  // Load preferences from localStorage on mount
+  // Load preferences from API on mount
   useEffect(() => {
-    const loadPreferences = () => {
+    const loadPreferences = async () => {
       try {
         setLoading(true);
-        const savedPreferences = localStorage.getItem('notificationPreferences');
+        setError(null);
         
-        if (savedPreferences) {
-          setPreferences(JSON.parse(savedPreferences));
+        // Fetch preferences from backend
+        const response = await notificationsAPI.getPreferences();
+        const data = response.data || response;
+        
+        if (data && Object.keys(data).length > 0) {
+          setPreferences(prevPrefs => ({
+            ...prevPrefs,
+            ...data
+          }));
         }
       } catch (err) {
         console.error('Error loading preferences:', err);
-        setError('Failed to load preferences');
+        
+        // Try to load from localStorage as fallback
+        const savedPreferences = localStorage.getItem('notificationPreferences');
+        if (savedPreferences) {
+          setPreferences(JSON.parse(savedPreferences));
+        }
+        
+        // Only show error if it's not a 404 (no preferences set yet)
+        if (err.message && !err.message.includes('404')) {
+          setError('Failed to load preferences. Using defaults.');
+        }
       } finally {
         setLoading(false);
       }
@@ -82,17 +100,21 @@ const NotificationPreferences = () => {
     setSaving(true);
     
     try {
-      // Save to localStorage (In production, this would call an API)
-      localStorage.setItem('notificationPreferences', JSON.stringify(preferences));
+      // Save to backend API
+      await notificationsAPI.updatePreferences(preferences);
       
-      // In a real implementation, you would call:
-      // await notificationsAPI.updatePreferences(preferences);
+      // Also save to localStorage as backup
+      localStorage.setItem('notificationPreferences', JSON.stringify(preferences));
       
       alert('Notification preferences saved successfully!');
       navigate('/profile');
     } catch (err) {
       console.error('Error saving preferences:', err);
-      alert('Failed to save preferences. Please try again.');
+      
+      // Still save to localStorage even if API fails
+      localStorage.setItem('notificationPreferences', JSON.stringify(preferences));
+      
+      alert('Failed to save preferences to server: ' + (err.message || 'Please try again'));
     } finally {
       setSaving(false);
     }
@@ -123,7 +145,7 @@ const NotificationPreferences = () => {
       {/* Scrollable Content */}
       <div className="pt-20 px-4 pb-6">
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 flex items-center gap-2">
+          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-yellow-700 flex items-center gap-2">
             <AlertCircle className="w-5 h-5 flex-shrink-0" />
             <span>{error}</span>
           </div>

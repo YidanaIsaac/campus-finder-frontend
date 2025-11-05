@@ -15,21 +15,20 @@ import UserGuide from './pages/UserGuide';
 import TermsOfService from './pages/Terms0fService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import './index.css';
+import ChangePassword from './pages/ChangePassword';
 
-// Protected Route Component
 const ProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem('token');
   const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-  return isLoggedIn ? children : <Navigate to="/login" replace />;
+  return (token || isLoggedIn) ? children : <Navigate to="/login" replace />;
 };
 
 function App() {
   return (
     <Router>
       <Routes>
-        {/* Login Route */}
         <Route path="/login" element={<Login />} />
         
-        {/* Protected Routes with MainLayout */}
         <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
           <Route index element={<Home />} />
           <Route path="report" element={<Report />} />
@@ -38,7 +37,6 @@ function App() {
           <Route path="profile" element={<Profile />} />
         </Route>
         
-        {/* Standalone protected routes without MainLayout */}
         <Route path="/privacy-settings" element={<ProtectedRoute><PrivacySettings /></ProtectedRoute>} />
         <Route path="/edit-profile" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
         <Route path="/notification-preferences" element={<ProtectedRoute><NotificationPreferences /></ProtectedRoute>} />
@@ -47,12 +45,12 @@ function App() {
         <Route path="/terms-of-service" element={<ProtectedRoute><TermsOfService /></ProtectedRoute>} />
         <Route path="/privacy-policy" element={<ProtectedRoute><PrivacyPolicy /></ProtectedRoute>} />
         <Route path="/item/:id" element={<ProtectedRoute><ItemDetails /></ProtectedRoute>} />
-        
-        {/* Catch all - redirect to login or home based on auth status */}
+        <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+
         <Route
           path="*"
           element={
-            localStorage.getItem('isLoggedIn') === 'true'
+            (localStorage.getItem('token') || localStorage.getItem('isLoggedIn') === 'true')
               ? <Navigate to="/" replace />
               : <Navigate to="/login" replace />
           }

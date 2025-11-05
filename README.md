@@ -28,13 +28,36 @@ A modern, responsive web application for managing lost and found items on campus
 
 ## 🚀 Getting Started
 
+### Prerequisites
+- Node.js (v18 or higher)
+- Backend server running (see [Backend Repository](https://github.com/YidanaIsaac/campus-finder-backend))
+
 ### Installation
 ```bash
 git clone https://github.com/YidanaIsaac/campus-finder-frontend.git
 cd campus-finder-frontend
 npm install
-npm run dev
 ```
+
+### Environment Setup
+Create a `.env` file in the root directory:
+```env
+VITE_API_BASE_URL=http://localhost:5000/api
+```
+
+### Running the Application
+```bash
+# Development mode
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+**Important:** Make sure the backend server is running before starting the frontend!
 
 Open http://localhost:5173 in your browser.
 
@@ -64,13 +87,18 @@ src/
 - [x] Notifications
 - [x] User profiles
 
-### 🚧 Phase 2: Backend (Coming Soon)
-- [ ] Node.js/Express API
-- [ ] MongoDB database
-- [ ] JWT authentication
-- [ ] Real-time notifications
+### ✅ Phase 2: Backend Integration (Complete)
+- [x] Node.js/Express API connected
+- [x] MongoDB database integrated
+- [x] JWT authentication implemented
+- [x] Real-time data fetching
+- [x] API error handling
+
+### 🚧 Phase 3: Advanced Features (Coming Soon)
+- [ ] Real-time notifications (Socket.io)
 - [ ] Email integration
-- [ ] Cloud storage
+- [ ] Image upload with Cloudinary
+- [ ] Push notifications
 
 ## 👨‍💻 Author
 

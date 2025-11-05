@@ -21,6 +21,7 @@ const EditProfile = () => {
     idNumber: '',
     department: '',
     userType: ''
+    
   });
   const [isLoading, setIsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -88,9 +89,73 @@ const EditProfile = () => {
     }
   };
 
-  const handleAvatarChange = () => {
-    alert('Avatar upload functionality would go here!\n\nYou would integrate with Cloudinary for image uploads.');
+ 
+const handleAvatarChange = () => {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size must be less than 5MB');
+      return;
+    }
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      // Convert to base64
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      
+      reader.onload = async () => {
+        try {
+          const base64Image = reader.result;
+          
+          // Upload to backend/Cloudinary
+          const response = await uploadAPI.uploadProfileImage(base64Image);
+          
+          // Update localStorage with new user data
+          localStorage.setItem('user', JSON.stringify(response.user));
+          
+          // Update local state
+          setFormData(prev => ({
+            ...prev,
+            profileImage: response.imageUrl
+          }));
+          
+          alert('Profile picture updated successfully!');
+        } catch (uploadError) {
+          console.error('Upload error:', uploadError);
+          alert('Failed to upload image: ' + (uploadError.message || 'Please try again'));
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      
+      reader.onerror = () => {
+        alert('Failed to read image file');
+        setIsLoading(false);
+      };
+    } catch (error) {
+      console.error('Error:', error);
+      alert('An error occurred. Please try again.');
+      setIsLoading(false);
+    }
   };
+  
+  input.click();
+};
 
   if (loading) {
     return (
@@ -250,19 +315,18 @@ const EditProfile = () => {
           </div>
         </div>
 
-        {/* Password Section */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <h2 className="text-lg font-bold text-gray-800 mb-2">Security</h2>
-          <p className="text-sm text-gray-600 mb-4">Manage your account security settings</p>
-          
-          <button 
-            onClick={() => alert('Password change functionality would be implemented here')}
-            className="w-full py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
-          >
-            Change Password
-          </button>
-        </div>
-
+       {/* Password Section */}
+<div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+  <h2 className="text-lg font-bold text-gray-800 mb-2">Security</h2>
+  <p className="text-sm text-gray-600 mb-4">Manage your account security settings</p>
+  
+  <Link 
+    to="/change-password"
+    className="w-full py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center"
+  >
+    Change Password
+  </Link>
+</div>
         {/* Action Buttons */}
         <div className="space-y-3">
           <button
