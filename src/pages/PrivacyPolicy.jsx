@@ -8,14 +8,14 @@ const PrivacyPolicy = () => {
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Fixed Header */}
       <header className="fixed top-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4 z-40 shadow-md">
-        <div className="flex items-center gap-4">
-          <button 
+        <div className="flex items-center relative w-full">
+          <button
             onClick={() => navigate(-1)}
-            className="hover:opacity-80 transition-opacity"
+            className="hover:opacity-80 transition-opacity absolute left-0"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-xl font-bold">Privacy Policy</h1>
+          <h1 className="text-xl font-bold text-center w-full">Privacy Policy</h1>
         </div>
       </header>
 

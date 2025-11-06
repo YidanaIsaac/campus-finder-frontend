@@ -126,3 +126,47 @@ export const supportAPI = {
     body: JSON.stringify(data)
   })
 };
+
+export const chatAPI = {
+  getChats: () => apiCall('/chat'),
+  getChat: (chatId) => apiCall(`/chat/${chatId}`),
+  sendMessage: (chatId, message) => apiCall(`/chat/${chatId}/messages`, {
+    method: 'POST',
+    body: JSON.stringify({ message })
+  }),
+  markAsRead: (chatId) => apiCall(`/chat/${chatId}/read`, {
+    method: 'PATCH'
+  }),
+  createChat: (userId) => apiCall('/chat', {
+    method: 'POST',
+    body: JSON.stringify({ userId })
+  }),
+  deleteChat: (chatId) => apiCall(`/chat/${chatId}`, {
+    method: 'DELETE'
+  })
+};
+
+export const uploadAPI = {
+  uploadImage: async (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    
+    const token = getToken();
+    const headers = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/upload`, {
+      method: 'POST',
+      headers,
+      body: formData
+    });
+    
+    if (!response.ok) {
+      throw new Error('Upload failed');
+    }
+    
+    return response.json();
+  }
+};

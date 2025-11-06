@@ -94,12 +94,12 @@ const Profile = () => {
         className="fixed top-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-b-xl z-40 shadow-md"
         style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1rem)', paddingLeft: '2rem', paddingRight: '2rem', paddingBottom: '1.5rem' }}
       >
-        <div className="flex items-center justify-between">
-          <Link to="/" className="hover:opacity-80 transition-opacity">
+        <div className="flex items-center justify-between relative w-full">
+          <Link to="/" className="hover:opacity-80 transition-opacity absolute left-0">
             <ArrowLeft className="w-6 h-6" />
           </Link>
-          <h1 className="text-xl font-bold">Profile</h1>
-          <Link to="/edit-profile" className="text-white text-sm font-medium hover:opacity-80 transition-opacity">
+          <h1 className="text-xl font-bold text-center w-full">Profile</h1>
+          <Link to="/edit-profile" className="text-white text-sm font-medium hover:opacity-80 transition-opacity absolute right-0">
             Edit
           </Link>
         </div>

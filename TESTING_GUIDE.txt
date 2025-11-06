@@ -1,0 +1,441 @@
+╔═══════════════════════════════════════════════════════════════╗
+║     🧪 CAMPUS FINDER - COMPLETE TESTING GUIDE 🧪              ║
+╚═══════════════════════════════════════════════════════════════╝
+
+📅 Testing Date: Tomorrow
+🎯 Goal: Verify Frontend ↔ Backend Integration
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 PRE-TESTING SETUP (Do this first!)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 1: Configure Backend Environment Variables
+────────────────────────────────────────────────────────────────
+Edit: ~/campus-finder-backend/.env
+
+Required configurations:
+✅ MONGO_URI=mongodb://localhost:27017/campus-finder
+✅ JWT_SECRET=your-super-secret-key-change-this
+✅ PORT=5000
+✅ NODE_ENV=development
+✅ FRONTEND_URL=http://localhost:5173
+
+📧 Email Setup (for password reset & notifications):
+   EMAIL_USER=your-gmail@gmail.com
+   EMAIL_PASS=your-app-password
+   
+   Get app password: https://myaccount.google.com/apppasswords
+
+☁️ Cloudinary Setup (for image uploads):
+   CLOUDINARY_CLOUD_NAME=your-cloud-name
+   CLOUDINARY_API_KEY=your-api-key
+   CLOUDINARY_API_SECRET=your-api-secret
+   
+   Sign up: https://cloudinary.com (Free tier available)
+
+STEP 2: Verify Frontend Environment
+────────────────────────────────────────────────────────────────
+Check: ~/findme/.env
+
+Should contain:
+✅ VITE_API_BASE_URL=http://localhost:5000/api
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚀 STARTING THE APPLICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+OPTION 1: Quick Start (Automated) ⚡
+────────────────────────────────────────────────────────────────
+cd ~/findme
+./start-all.sh
+
+This will automatically:
+• Start MongoDB
+• Start Backend Server (port 5000)
+• Start Frontend Dev Server (port 5173)
+
+OPTION 2: Manual Start (Step by Step) 📝
+────────────────────────────────────────────────────────────────
+
+Terminal 1 - MongoDB:
+$ brew services start mongodb-community@7.0
+$ mongosh --eval "db.version()"    # Verify it's running
+
+Terminal 2 - Backend:
+$ cd ~/campus-finder-backend
+$ npm install
+$ npm start
+
+Expected output:
+✅ Server running on port 5000
+✅ Connected to MongoDB
+✅ Socket.IO initialized
+
+Terminal 3 - Frontend:
+$ cd ~/findme
+$ npm install
+$ npm run dev
+
+Expected output:
+➜ Local: http://localhost:5173/
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🧪 TESTING CHECKLIST (Execute in Order)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TEST 1: Authentication System 🔐
+────────────────────────────────────────────────────────────────
+URL: http://localhost:5173/login
+
+□ Test User Registration
+  1. Click "Register" tab
+  2. Fill in:
+     - Name: Test User
+     - Email: test@example.com
+     - Phone: +233 24 123 4567
+     - User Type: Student
+     - Password: password123
+  3. Click "Create Account"
+  
+  ✅ Expected: Redirect to home page
+  ✅ Backend: Check MongoDB for new user
+     $ mongosh campus-finder
+     > db.users.find({email: "test@example.com"})
+
+□ Test User Login
+  1. Logout (if logged in)
+  2. Go to Login page
+  3. Enter:
+     - Email: test@example.com
+     - Password: password123
+  4. Click "Sign In"
+  
+  ✅ Expected: Redirect to home page
+  ✅ Check browser console: Token stored in localStorage
+
+□ Test Forgot Password
+  1. Click "Forgot password?"
+  2. Enter email: test@example.com
+  3. Click "Send Reset Link"
+  
+  ✅ Expected: Success message
+  ✅ Backend: Check terminal logs for email sent
+  ✅ Email: Check inbox for reset link (if configured)
+
+TEST 2: Item Reporting (with Image Upload) 📦
+────────────────────────────────────────────────────────────────
+URL: http://localhost:5173/report
+
+□ Report a Found Item
+  1. Login first
+  2. Go to /report
+  3. Fill in:
+     - Item Name: Blue Backpack
+     - Category: Bags
+     - Description: Found near library
+     - Location: Main Library
+     - Date Found: Today
+  4. Upload an image (JPG/PNG)
+  5. Click "Submit Report"
+  
+  ✅ Expected: Success message & redirect
+  ✅ Backend: Check item in database
+     > db.items.find({itemName: "Blue Backpack"})
+  ✅ Cloudinary: Image uploaded (if configured)
+
+TEST 3: Browse Items 🔍
+────────────────────────────────────────────────────────────────
+URL: http://localhost:5173/browse
+
+□ View All Items
+  1. Go to /browse
+  2. Check if items are displayed
+  
+  ✅ Expected: List of reported items
+  ✅ Should show: Blue Backpack (from Test 2)
+
+□ Search Items
+  1. Use search bar: "backpack"
+  2. Select category: "Bags"
+  
+  ✅ Expected: Filtered results
+
+□ View Item Details
+  1. Click on any item
+  2. Check details page
+  
+  ✅ Expected: Full item information
+  ✅ Image displayed correctly
+
+TEST 4: Real-time Chat System 💬
+────────────────────────────────────────────────────────────────
+URL: http://localhost:5173/chat
+
+□ Setup (Create 2 Test Users)
+  1. Register User A: test1@example.com
+  2. Register User B: test2@example.com
+  3. User A: Report an item
+  4. User B: View item and click "Contact Finder"
+
+□ Test Real-time Messaging
+  1. User A: Login in Browser 1 (or Incognito)
+  2. User B: Login in Browser 2
+  3. User B: Send message to User A
+  
+  ✅ Expected: Message appears instantly in User A's chat
+  ✅ Check: Unread badge appears
+  ✅ Socket.IO: Check browser console for connection
+
+□ Test Message Features
+  1. Send multiple messages
+  2. Check timestamps
+  3. Check read receipts (✓✓)
+  4. Mark as read
+  
+  ✅ Expected: Real-time updates without refresh
+  ✅ Backend: Check Socket.IO logs in terminal
+
+TEST 5: Profile & Settings ⚙️
+────────────────────────────────────────────────────────────────
+URL: http://localhost:5173/profile
+
+□ View Profile
+  1. Go to /profile
+  2. Check your reported items
+  
+  ✅ Expected: List of items you reported
+
+□ Edit Profile
+  1. Go to /edit-profile
+  2. Update name, phone
+  3. Save changes
+  
+  ✅ Expected: Profile updated
+
+□ Change Password
+  1. Go to /change-password
+  2. Enter:
+     - Current password
+     - New password
+     - Confirm password
+  3. Submit
+  
+  ✅ Expected: Success message
+  ✅ Test: Logout and login with new password
+
+TEST 6: Notifications 🔔
+────────────────────────────────────────────────────────────────
+URL: http://localhost:5173/notifications
+
+□ Check Notifications
+  1. Perform actions (report item, send message)
+  2. Go to /notifications
+  
+  ✅ Expected: List of notifications
+  ✅ Badge count updates
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧 BACKEND API TESTING (Using Terminal/Postman)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Test 1: Check Server Health
+────────────────────────────────────────────────────────────────
+$ curl http://localhost:5000
+Expected: Server response or API info
+
+Test 2: Register User (API)
+────────────────────────────────────────────────────────────────
+$ curl -X POST http://localhost:5000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "API Test User",
+    "email": "apitest@example.com",
+    "password": "password123",
+    "userType": "student",
+    "phoneNumber": "+233241234567"
+  }'
+
+Expected: JSON with token and user data
+
+Test 3: Login User (API)
+────────────────────────────────────────────────────────────────
+$ curl -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "apitest@example.com",
+    "password": "password123"
+  }'
+
+Expected: JSON with token
+Save token for next tests: export TOKEN="your-token-here"
+
+Test 4: Get All Items (API)
+────────────────────────────────────────────────────────────────
+$ curl http://localhost:5000/api/items \
+  -H "Authorization: Bearer $TOKEN"
+
+Expected: JSON array of items
+
+Test 5: Create Item (API)
+────────────────────────────────────────────────────────────────
+$ curl -X POST http://localhost:5000/api/items \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "itemName": "Test Laptop",
+    "category": "Electronics",
+    "description": "MacBook Pro 2020",
+    "location": "Computer Lab",
+    "dateFound": "2025-11-05"
+  }'
+
+Expected: JSON with created item
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 VERIFICATION CHECKLIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Database Verification:
+────────────────────────────────────────────────────────────────
+$ mongosh campus-finder
+
+> db.users.countDocuments()          // Check users created
+> db.items.countDocuments()          // Check items reported
+> db.chats.countDocuments()          // Check chat conversations
+> db.messages.countDocuments()       // Check messages sent
+
+> db.users.find().pretty()           // View all users
+> db.items.find().pretty()           // View all items
+
+Backend Logs Verification:
+────────────────────────────────────────────────────────────────
+Check terminal for:
+✅ "Connected to MongoDB"
+✅ "Socket.IO initialized"
+✅ "✅ New message notification sent to..."
+✅ API request logs (GET, POST, etc.)
+
+Frontend Console Verification:
+────────────────────────────────────────────────────────────────
+Open Browser DevTools (F12) → Console
+✅ No red errors
+✅ "✅ Connected to Socket.IO"
+✅ API responses logged
+
+Network Tab Verification:
+────────────────────────────────────────────────────────────────
+Browser DevTools → Network
+✅ API calls to localhost:5000
+✅ Status 200 for successful requests
+✅ Proper JSON responses
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🐛 TROUBLESHOOTING GUIDE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problem: MongoDB won't start
+────────────────────────────────────────────────────────────────
+Solution:
+$ brew services restart mongodb-community@7.0
+$ ps aux | grep mongod  # Check if running
+
+Problem: Backend "Cannot connect to MongoDB"
+────────────────────────────────────────────────────────────────
+Solution:
+1. Check MongoDB is running
+2. Verify MONGO_URI in .env
+3. Check firewall settings
+
+Problem: Frontend can't connect to backend
+────────────────────────────────────────────────────────────────
+Solution:
+1. Check backend is running on port 5000
+2. Verify VITE_API_BASE_URL in frontend .env
+3. Check browser console for CORS errors
+4. Backend should have CORS enabled for localhost:5173
+
+Problem: Socket.IO not connecting
+────────────────────────────────────────────────────────────────
+Solution:
+1. Check browser console for connection errors
+2. Verify backend Socket.IO is initialized
+3. Check firewall/antivirus blocking WebSocket
+
+Problem: Image upload fails
+────────────────────────────────────────────────────────────────
+Solution:
+1. Verify Cloudinary credentials in backend .env
+2. Check file size (should be < 5MB)
+3. Check browser console for errors
+
+Problem: Email not sending (forgot password)
+────────────────────────────────────────────────────────────────
+Solution:
+1. Verify EMAIL_USER and EMAIL_PASS in .env
+2. Use Gmail App Password (not regular password)
+3. Enable "Less secure app access" (if using old Gmail)
+4. Check backend terminal for email errors
+
+Problem: Login fails
+────────────────────────────────────────────────────────────────
+Solution:
+1. Check backend terminal for errors
+2. Verify user exists in MongoDB
+3. Check password is correct
+4. Clear browser localStorage and try again
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ SUCCESS CRITERIA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Your app is working perfectly if:
+
+✅ Users can register and login
+✅ Items can be reported with images
+✅ Items are searchable and browsable
+✅ Real-time chat works between users
+✅ Notifications appear for important events
+✅ Password reset emails are received
+✅ Profile updates save correctly
+✅ No console errors in browser
+✅ Backend logs show successful connections
+✅ MongoDB contains all test data
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📝 TESTING NOTES TEMPLATE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Date: _______________
+Tester: _____________
+
+Feature                Status    Notes
+────────────────────   ────────  ─────────────────────────────
+User Registration      [ ]       
+User Login             [ ]       
+Forgot Password        [ ]       
+Report Item            [ ]       
+Upload Image           [ ]       
+Browse Items           [ ]       
+Search Items           [ ]       
+Real-time Chat         [ ]       
+Notifications          [ ]       
+Profile Update         [ ]       
+Change Password        [ ]       
+
+Issues Found:
+1. _____________________________________________________
+2. _____________________________________________________
+3. _____________________________________________________
+
+Overall Assessment: ___________________________________
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 GOOD LUCK WITH TESTING TOMORROW! 🎯
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Remember:
+• Follow tests in order
+• Document any issues
+• Check both browser console and backend terminal
+• Test with multiple users for chat functionality
+• Have fun! 🚀

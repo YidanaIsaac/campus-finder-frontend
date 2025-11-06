@@ -187,11 +187,11 @@ const handleAvatarChange = () => {
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Fixed Header */}
       <header className="fixed top-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4 flex items-center justify-between z-40 shadow-md">
-        <Link to="/profile" className="hover:opacity-80 transition-opacity">
+        <Link to="/profile" className="hover:opacity-80 transition-opacity absolute left-4">
           <ArrowLeft className="w-6 h-6" />
         </Link>
-        <h1 className="text-xl font-bold">Edit Profile</h1>
-        <div className="w-6"></div>
+        <h1 className="text-xl font-bold text-center w-full">Edit Profile</h1>
+        <div className="w-6 absolute right-4"></div>
       </header>
 
       {/* Scrollable Content */}

@@ -94,8 +94,8 @@ const Notifications = () => {
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Fixed Header */}
       <header className="fixed top-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4 z-40 shadow-lg">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-2">
+        <div className="max-w-7xl mx-auto relative">
+          <div className="flex items-center justify-center mb-2">
             <div className="flex items-center gap-3">
               <Bell className="w-7 h-7" />
               <h1 className="text-2xl font-bold">Notifications</h1>
@@ -103,7 +103,7 @@ const Notifications = () => {
             {unreadCount > 0 && (
               <button 
                 onClick={clearAll}
-                className="text-sm font-medium bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg transition-all"
+                className="text-sm font-medium bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg transition-all absolute top-0 right-0"
               >
                 Mark All Read
               </button>

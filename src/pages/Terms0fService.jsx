@@ -8,11 +8,11 @@ const TermsOfService = () => {
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
       <header className="bg-gradient-to-r from-primary to-primary-dark text-white p-4" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1rem)' }}>
-        <div className="flex items-center gap-4">
-          <button onClick={() => navigate(-1)}>
+        <div className="flex items-center relative w-full">
+          <button onClick={() => navigate(-1)} className="absolute left-0">
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-xl font-bold">Terms of Service</h1>
+          <h1 className="text-xl font-bold text-center w-full">Terms of Service</h1>
         </div>
       </header>
 

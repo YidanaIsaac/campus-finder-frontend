@@ -111,11 +111,11 @@ const Browse = () => {
         className="fixed top-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-b-xl transition-transform duration-300 z-50"
         style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1rem)', paddingLeft: '2rem', paddingRight: '2rem', paddingBottom: '2rem' }}
       >
-        <div className="flex items-center gap-4">
-          <Link to="/">
+        <div className="flex items-center relative w-full">
+          <Link to="/" className="absolute left-0">
             <ArrowLeft className="w-6 h-6" />
           </Link>
-          <h1 className="text-2xl font-bold">Browse Items</h1>
+          <h1 className="text-2xl font-bold text-center w-full">Browse Items</h1>
         </div>
       </header>
 

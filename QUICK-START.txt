@@ -1,0 +1,132 @@
+╔═══════════════════════════════════════════════════════════════════╗
+║         CAMPUS FINDER - QUICK START COMMANDS                     ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+🚀 QUICK START (3 Terminals)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Terminal 1 - Start MongoDB:
+───────────────────────────────────────────────────────────────────
+brew services start mongodb-community@7.0
+
+# Verify it's running:
+brew services list | grep mongodb
+
+
+Terminal 2 - Start Backend Server:
+───────────────────────────────────────────────────────────────────
+cd ~/campus-finder-backend
+npm start
+
+# Expected output:
+# ✅ Server running on port 5000
+# ✅ Connected to MongoDB
+# ✅ Socket.IO initialized
+
+
+Terminal 3 - Start Frontend:
+───────────────────────────────────────────────────────────────────
+cd ~/findme
+npm run dev
+
+# Expected output:
+# ➜ Local:   http://localhost:5173/
+
+
+📱 ACCESS YOUR APP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Frontend:  http://localhost:5173
+Backend:   http://localhost:5000
+MongoDB:   mongodb://localhost:27017
+
+
+🛑 STOP SERVICES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Stop MongoDB:
+brew services stop mongodb-community@7.0
+
+Stop Backend/Frontend:
+Press Ctrl+C in their respective terminals
+
+
+🔧 TROUBLESHOOTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Port already in use:
+lsof -ti:5000 | xargs kill -9    # Kill backend port
+lsof -ti:5173 | xargs kill -9    # Kill frontend port
+
+MongoDB not connecting:
+brew services restart mongodb-community@7.0
+
+Backend can't find modules:
+cd ~/campus-finder-backend && npm install
+
+Frontend can't find modules:
+cd ~/findme && npm install
+
+
+✅ TESTING CHECKLIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+□ MongoDB running (check with: brew services list)
+□ Backend running on port 5000
+□ Frontend running on port 5173
+□ Can access http://localhost:5173
+□ Can register a new user
+□ Can login successfully
+□ Can report a found item
+□ Can browse items
+□ Can send chat messages
+□ Password reset email works
+
+
+📋 FIRST TIME SETUP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Configure Backend Environment:
+   cd ~/campus-finder-backend
+   # Edit .env file with your credentials
+
+2. Install Dependencies:
+   cd ~/campus-finder-backend && npm install
+   cd ~/findme && npm install
+
+3. Start Everything (see commands above)
+
+
+🎯 FEATURES TO TEST TOMORROW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Authentication
+   • Register new account
+   • Login with credentials
+   • Forgot password flow
+   • Logout
+
+✅ Items Management
+   • Report found item (with image)
+   • Browse all items
+   • View item details
+   • Search/filter items
+
+✅ Real-time Chat
+   • Send messages
+   • Receive messages in real-time
+   • Read receipts
+   • Unread message badges
+
+✅ User Profile
+   • View profile
+   • Edit profile information
+   • Change password
+   • View my reports
+
+✅ Notifications
+   • View notifications
+   • Mark as read
+   • Notification preferences
+
+╚═══════════════════════════════════════════════════════════════════╝
